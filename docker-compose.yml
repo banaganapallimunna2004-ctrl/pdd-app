@@ -1,0 +1,56 @@
+version: '3.9'
+services:
+  mongo:
+    image: mongo:7
+    container_name: agro-mongo
+    restart: unless-stopped
+    ports:
+      - '27017:27017'
+    volumes:
+      - mongo_data:/data/db
+    environment:
+      MONGO_INITDB_DATABASE: agro_ai_system
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - '4173:4173'
+    environment:
+      - VITE_API_BASE_URL=http://backend:5000/api
+    depends_on:
+      - backend
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - '5000:5000'
+    environment:
+      - NODE_ENV=development
+      - PORT=5000
+      - FRONTEND_URL=http://localhost:4173
+      - MONGODB_URI=mongodb://mongo:27017/agro_ai_system
+      - MONGODB_DB=agro_ai_system
+      - AI_SERVICE_URL=http://ai:6000
+      - SMS_PROVIDER=${SMS_PROVIDER:-twilio}
+      - TWILIO_ACCOUNT_SID=${TWILIO_ACCOUNT_SID:-}
+      - TWILIO_AUTH_TOKEN=${TWILIO_AUTH_TOKEN:-}
+      - TWILIO_PHONE_NUMBER=${TWILIO_PHONE_NUMBER:-}
+    depends_on:
+      - mongo
+      - ai
+
+  ai:
+    build:
+      context: ./ai
+      dockerfile: Dockerfile
+    ports:
+      - '6000:6000'
+    environment:
+      - PORT=6000
+
+volumes:
+  mongo_data:

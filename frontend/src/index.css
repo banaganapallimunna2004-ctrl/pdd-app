@@ -1,0 +1,101 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: dark;
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  position: relative;
+  background:
+    linear-gradient(180deg, rgba(34, 197, 94, 0.22), rgba(2, 6, 23, 0.92)),
+    url('https://images.unsplash.com/photo-1501004318641-b39e6451bec6?auto=format&fit=crop&w=2400&q=90') center/cover no-repeat;
+  background-attachment: fixed;
+}
+
+
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background:
+    linear-gradient(90deg, rgba(2, 6, 23, 0.10), rgba(2, 6, 23, 0.64)),
+    url('https://images.unsplash.com/photo-1523413651479-597eb2da0ad6?auto=format&fit=crop&w=1800&q=90') right center/55% auto no-repeat,
+    linear-gradient(135deg, rgba(34, 197, 94, 0.22), transparent 38%),
+    radial-gradient(circle at 20% 10%, rgba(253, 224, 71, 0.18), transparent 22%),
+    radial-gradient(circle at 80% 8%, rgba(16, 185, 129, 0.14), transparent 25%),
+    linear-gradient(180deg, rgba(2, 6, 23, 0.06), rgba(2, 6, 23, 0.60));
+  opacity: 0.68;
+  mix-blend-mode: screen;
+}
+
+
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background-image:
+    linear-gradient(180deg, rgba(2, 6, 23, 0.12), rgba(2, 6, 23, 0.68)),
+    linear-gradient(rgba(255,255,255,0.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.035) 1px, transparent 1px);
+  background-size: auto, 72px 72px, 72px 72px;
+  -webkit-mask-image: linear-gradient(180deg, rgba(0,0,0,0.45), transparent 95%);
+  mask-image: linear-gradient(180deg, rgba(0,0,0,0.45), transparent 95%);
+  opacity: 0.18;
+}
+
+body, #root {
+  min-height: 100vh;
+}
+
+#root {
+  position: relative;
+  z-index: 1;
+}
+
+::selection {
+  background: rgba(56, 189, 248, 0.4);
+}
+
+button, input, textarea, select {
+  font: inherit;
+}
+
+.theme-panel {
+  position: relative;
+  overflow: hidden;
+}
+
+.theme-panel::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background:
+    linear-gradient(180deg, rgba(15, 23, 42, 0.08), rgba(2, 6, 23, 0.35)),
+    radial-gradient(circle at top, rgba(56, 189, 248, 0.08), transparent 30%);
+  box-shadow: inset 0 0 0 1px rgba(148, 163, 184, 0.08), 0 18px 40px rgba(15, 23, 42, 0.35);
+}
+
+.theme-card {
+  background-image: linear-gradient(135deg, rgba(6, 95, 70, 0.88), rgba(2, 6, 23, 0.72));
+  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(34, 197, 94, 0.12);
+}
+
+.leaflet-container {
+  background: transparent;
+}
+
