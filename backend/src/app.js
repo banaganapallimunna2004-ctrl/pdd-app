@@ -19,10 +19,11 @@ const errorHandler = require('./middleware/errorHandler');
 
 const app = express();
 
-const allowedOrigins = (process.env.ALLOWED_ORIGINS || 'http://localhost:5173,http://127.0.0.1:5173')
+const allowedOrigins = (process.env.ALLOWED_ORIGINS || 'http://localhost:4173,http://localhost:4174,http://127.0.0.1:4173,http://127.0.0.1:4174,http://localhost:5173,http://127.0.0.1:5173')
   .split(',')
   .map((origin) => origin.trim())
   .filter(Boolean);
+
 
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,

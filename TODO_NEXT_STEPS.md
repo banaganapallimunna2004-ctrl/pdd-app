@@ -1,24 +1,11 @@
-## Next steps (after OTP + theme verification)
+# TODO_NEXT_STEPS (Login Authentication)
 
-### 1) Fix OTP login UI mismatch
-- Ensure routing renders `frontend/src/pages/Login.jsx` (OTP-enabled) instead of the mock login.
-- Remove/replace any duplicate `Login.jsx` files in the project root if they exist.
-
-### 2) Cream/light theme conversion
-- Update `frontend/src/index.css` and global wrapper in `frontend/src/App.jsx` to light cream theme.
-- Normalize shared components (cards, buttons, text colors) so pages remain readable.
-
-### 3) Dashboard redesign
-- Rewrite `frontend/src/pages/Dashboard.jsx` layout to match new light theme.
-- Improve typography, spacing, and card hierarchy.
-
-### 4) OTP UX hardening
-- Update `frontend/src/pages/Login.jsx` to:
-  - show resend cooldown timer
-  - show backend error details
-  - show `devOtp` only in non-production (or add a toggle for testing)
-
-### 5) Testing
-- Run `npm run build` and start Vite dev server again.
-- Validate OTP request/verify flow and navigation to `/dashboard`.
+- [ ] Improve login UI to surface backend failure reason + status (403 email verification, 400/429 OTP issues).
+- [ ] Add redirection to /verify when backend returns 403 for unverified users (email flow).
+- [ ] (Optional) Make AuthContext attempt refresh-token exchange on 401 from /auth/me.
+- [ ] Test login flows:
+  - Email login (verified user)
+  - Email login (unverified user)
+  - Phone OTP request + verify
+- [ ] Confirm ProtectedRoute allows access after successful login.
 
