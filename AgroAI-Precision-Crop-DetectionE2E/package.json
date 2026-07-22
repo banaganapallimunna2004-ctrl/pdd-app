@@ -4,7 +4,9 @@
   "description": "1,100 Selenium E2E assertions for AgroAI Precision Crop Detection with Excel & HTML reporting",
   "main": "index.js",
   "scripts": {
-    "test": "mocha tests/mega_web_1100.test.js --reporter utils/excelReporter.js --timeout 60000 --exit"
+    "test": "mocha tests/mega_web_1100.test.js --reporter utils/excelReporter.js --timeout 60000 --exit",
+    "test:ci": "TEST_BASE_URL=$TEST_BASE_URL mocha tests/mega_web_1100.test.js --reporter utils/excelReporter.js --timeout 120000 --exit",
+    "scan:web": "node scripts/generateWebSecuritySuite.js"
   },
   "dependencies": {
     "exceljs": "^4.4.0",

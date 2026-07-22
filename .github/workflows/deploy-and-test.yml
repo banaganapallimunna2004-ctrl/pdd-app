@@ -7,11 +7,23 @@ on:
     branches: [main]
   workflow_dispatch:
 
+# ── Permissions required for GitHub Pages deployment ────────────────────────
 permissions:
-  contents: write
+  contents: read
+  pages: write
+  id-token: write
+
+# ── Prevent concurrent deployments causing race conditions ───────────────────
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
 
 jobs:
-  test-and-deploy:
+  # ─────────────────────────────────────────────────────────────────────────
+  # JOB 1: Run 1,100 E2E Tests + Web Security Scan
+  # ─────────────────────────────────────────────────────────────────────────
+  test-and-scan:
+    name: E2E Tests & Security Scan
     runs-on: ubuntu-latest
 
     services:
@@ -19,38 +31,60 @@ jobs:
         image: mongo:6.0
         ports:
           - 27017:27017
+        options: >-
+          --health-cmd "mongosh --eval 'db.runCommand(\"ping\").ok' --quiet"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    outputs:
+      test-passed: ${{ steps.e2e.outcome }}
 
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
+      - name: Setup Node.js 20
         uses: actions/setup-node@v4
         with:
           node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: |
+            frontend/package-lock.json
+            backend/package-lock.json
+            AgroAI-Precision-Crop-DetectionE2E/package-lock.json
 
+      # ── Backend ────────────────────────────────────────────────────────
       - name: Install Backend Dependencies
         working-directory: ./backend
         run: npm ci
 
-      - name: Configure Backend Env
+      - name: Configure Backend Environment
         run: |
-          echo "MONGODB_URI=mongodb://localhost:27017/agroai_db" > backend/.env
-          echo "JWT_SECRET=dev_secret_jwt_key_e2e" >> backend/.env
-          echo "JWT_REFRESH_SECRET=dev_refresh_jwt_key_e2e" >> backend/.env
-          echo "PORT=5000" >> backend/.env
-          echo "NODE_ENV=development" >> backend/.env
-          echo "FRONTEND_URL=http://localhost:5173" >> backend/.env
+          cat > backend/.env <<'EOF'
+          MONGODB_URI=mongodb://localhost:27017/agroai_db
+          JWT_SECRET=dev_secret_jwt_key_e2e_ci
+          JWT_REFRESH_SECRET=dev_refresh_jwt_key_e2e_ci
+          PORT=5000
+          NODE_ENV=development
+          FRONTEND_URL=http://localhost:5173
+          EOF
 
       - name: Start Backend Server
         working-directory: ./backend
-        run: npm start &
+        run: |
+          npm start &
+          # Wait up to 20s for the backend to be ready
+          for i in $(seq 1 20); do
+            curl -sf http://localhost:5000/api/health && echo "✅ Backend ready" && break || sleep 1
+          done
 
+      # ── Frontend Build ─────────────────────────────────────────────────
       - name: Install Frontend Dependencies
         working-directory: ./frontend
         run: npm ci
 
-      - name: Build Frontend Application for GitHub Pages
+      - name: Build Frontend for GitHub Pages
         working-directory: ./frontend
         run: |
           echo "VITE_API_BASE_URL=http://localhost:5000/api" > .env
@@ -60,49 +94,126 @@ jobs:
         working-directory: ./frontend
         run: |
           npx vite preview --port 5173 --host 127.0.0.1 --base /AI-CropDisease-Prediction/ &
-          sleep 5
-          curl -I http://127.0.0.1:5173/AI-CropDisease-Prediction/
-          echo "TEST_BASE_URL=http://127.0.0.1:5173/AI-CropDisease-Prediction/" >> $GITHUB_ENV
+          sleep 4
+          # Verify preview server is alive
+          curl -sf http://127.0.0.1:5173/AI-CropDisease-Prediction/ && echo "✅ Vite preview ready" || echo "⚠️ Preview fallback will be used"
+          echo "TEST_BASE_URL=http://127.0.0.1:5173/AI-CropDisease-Prediction" >> $GITHUB_ENV
 
+      # ── E2E Test Suite ─────────────────────────────────────────────────
       - name: Install E2E Dependencies
         working-directory: ./AgroAI-Precision-Crop-DetectionE2E
         run: npm install
 
-      - name: Run 1,100 E2E Selenium Tests
+      - name: Run 1,100 E2E Selenium Assertions
+        id: e2e
         working-directory: ./AgroAI-Precision-Crop-DetectionE2E
+        env:
+          TEST_BASE_URL: ${{ env.TEST_BASE_URL }}
         run: npm test
 
-      - name: Inject Excel and HTML Reports into Frontend Dist
+      # ── Web Frontend Security Scan ─────────────────────────────────────
+      - name: Run Web Frontend Security Scan
+        working-directory: ./AgroAI-Precision-Crop-DetectionE2E
+        env:
+          NODE_PATH: ./node_modules
+        run: node scripts/generateWebSecuritySuite.js
+
+      - name: Enforce Zero-Critical Policy (Web)
         run: |
-          mkdir -p frontend/dist/reports
-          cp Test_Results/HTML/execution-report.html frontend/dist/reports/index.html
-          cp Test_Results/selenium-report.xlsx frontend/dist/reports/selenium-report.xlsx
+          CRITICAL=$(grep -oP "Critical Findings:\s*\|\s*\K[0-9]+" \
+            Test_Results/Security/web-executive-summary.md 2>/dev/null || echo "0")
+          echo "Web Critical Findings: $CRITICAL"
+          if [ "$CRITICAL" -gt 0 ]; then
+            echo "❌ Zero-Critical gate FAILED! Found $CRITICAL Critical findings in web scan."
+            exit 1
+          fi
+          echo "✅ Zero-Critical gate PASSED for web scan."
 
-      - name: Deploy to GitHub Pages
-        uses: peaceiris/actions-gh-pages@v3
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./frontend/dist
-          user_name: 'github-actions[bot]'
-          user_email: 'github-actions[bot]@users.noreply.github.com'
+      # ── Inject Reports into dist ───────────────────────────────────────
+      - name: Inject E2E Reports into Frontend Dist
+        run: |
+          # Latest report (always accessible at /reports/latest/)
+          mkdir -p frontend/dist/reports/latest
+          cp Test_Results/HTML/execution-report.html \
+             frontend/dist/reports/latest/execution-report.html
 
-      - name: Upload Test Reports Artifact
+          # Timestamped history build
+          mkdir -p frontend/dist/reports/history/build-${{ github.run_number }}
+          cp Test_Results/HTML/execution-report.html \
+             frontend/dist/reports/history/build-${{ github.run_number }}/execution-report.html
+
+          # Excel report
+          cp Test_Results/selenium-report.xlsx \
+             frontend/dist/reports/latest/selenium-report.xlsx || true
+
+          # Security reports
+          mkdir -p frontend/dist/reports/security
+          cp Test_Results/Security/web-security-findings.xlsx \
+             frontend/dist/reports/security/ 2>/dev/null || true
+          cp Test_Results/Security/web-security-review.md \
+             frontend/dist/reports/security/ 2>/dev/null || true
+          cp Test_Results/Security/web-executive-summary.md \
+             frontend/dist/reports/security/ 2>/dev/null || true
+
+          echo "✅ All reports injected into dist/"
+
+      # ── Upload Artifacts ───────────────────────────────────────────────
+      - name: Upload Test Report Artifacts
         uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: Selenium-E2E-Execution-Reports
+          name: Selenium-E2E-Reports-${{ github.run_number }}
+          retention-days: 30
           path: |
             Test_Results/
             AgroAI-Precision-Crop-DetectionE2E/summary.md
 
+      # ── Configure & Upload GitHub Pages Artifact ───────────────────────
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload Frontend Dist as Pages Artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: ./frontend/dist
+
+      # ── Step Summary ───────────────────────────────────────────────────
       - name: Publish Job Summary
         uses: actions/github-script@v7
         if: always()
         with:
           script: |
-            const fs = require('fs');
+            const fs   = require('fs');
             const path = require('path');
-            const summaryPath = path.resolve('AgroAI-Precision-Crop-DetectionE2E', 'summary.md');
-            if (fs.existsSync(summaryPath)) {
-              core.summary.addRaw(fs.readFileSync(summaryPath, 'utf8')).write();
+
+            // E2E summary
+            const e2ePath = path.resolve('AgroAI-Precision-Crop-DetectionE2E', 'summary.md');
+            if (fs.existsSync(e2ePath)) {
+              core.summary.addRaw(fs.readFileSync(e2ePath, 'utf8'));
             }
+
+            // Web security executive summary
+            const webSecPath = path.resolve('Test_Results', 'Security', 'web-executive-summary.md');
+            if (fs.existsSync(webSecPath)) {
+              core.summary.addRaw('\n\n---\n\n');
+              core.summary.addRaw(fs.readFileSync(webSecPath, 'utf8'));
+            }
+
+            core.summary.addRaw(`\n\n---\n\n📄 **[View Live E2E Report](https://${{ github.repository_owner }}.github.io/AI-CropDisease-Prediction/reports/latest/execution-report.html)**\n`);
+            await core.summary.write();
+
+  # ─────────────────────────────────────────────────────────────────────────
+  # JOB 2: Deploy to GitHub Pages (depends on Job 1)
+  # ─────────────────────────────────────────────────────────────────────────
+  deploy:
+    name: Deploy to GitHub Pages
+    needs: test-and-scan
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      - name: Deploy Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

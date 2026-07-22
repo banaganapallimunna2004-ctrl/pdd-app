@@ -148,10 +148,10 @@ const Register = () => {
     <div className="relative min-h-screen overflow-hidden bg-slate-100">
       {/* Background image overlay */}
       <div 
-        className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1625246333195-78d9c38ad449?auto=format&fit=crop&w=1920&q=80')] bg-cover bg-center opacity-100" 
+        className="pointer-events-none absolute inset-0 bg-[url('https://images.unsplash.com/photo-1625246333195-78d9c38ad449?auto=format&fit=crop&w=1920&q=80')] bg-cover bg-center opacity-100" 
         style={{ filter: 'brightness(0.85) contrast(1.05)' }}
       />
-      <div className="absolute inset-0 bg-gradient-to-tr from-white/70 via-slate-100/50 to-emerald-100/30 backdrop-blur-[1px]" />
+      <div className="pointer-events-none absolute inset-0 bg-gradient-to-tr from-white/70 via-slate-100/50 to-emerald-100/30 backdrop-blur-[1px]" />
 
       {/* Grid overlay and ambient glows */}
       <div className="absolute inset-0 pointer-events-none">
@@ -162,7 +162,7 @@ const Register = () => {
       </div>
 
       {/* Floating Language Switcher */}
-      <div className="absolute top-6 right-6 z-50">
+      <div className="fixed top-6 right-6 z-50">
         <LanguageSelector />
       </div>
 

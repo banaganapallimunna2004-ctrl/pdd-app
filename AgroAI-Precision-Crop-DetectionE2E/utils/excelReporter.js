@@ -35,14 +35,18 @@ class ExcelReporter {
       this._recordTest(test, 'pending');
     });
 
-    runner.on('end', async () => {
+    runner.on('end', () => {
       this.stats.endTime = new Date().toISOString();
-      try {
-        await this._generateReports();
-      } catch (err) {
-        console.error('\n❌ Report generation failed:', err.message);
-      }
     });
+  }
+
+  async done(failures, fn) {
+    try {
+      await this._generateReports();
+    } catch (err) {
+      console.error('\n❌ Report generation failed:', err.message);
+    }
+    fn(failures);
   }
 
   // ── Record a single test result ──────────────────────────────────────────

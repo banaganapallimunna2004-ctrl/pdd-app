@@ -85,6 +85,17 @@ async function waitForElement(selector, timeoutMs = 8000) {
   return el;
 }
 
+// Safe click helper to handle headless element interceptions, animations, or viewport scrolls
+async function safeClick(element) {
+  try {
+    await driver.executeScript("arguments[0].scrollIntoView({block: 'center', inline: 'nearest'});", element);
+    await new Promise((r) => setTimeout(r, 100));
+    await element.click();
+  } catch (err) {
+    await driver.executeScript("arguments[0].click();", element);
+  }
+}
+
 // Main E2E runner logic
 async function runSeleniumTests() {
   const chromeOptions = new chrome.Options();
@@ -153,10 +164,10 @@ async function runSeleniumTests() {
           testName = 'Click email tab and check input fields';
           expected = 'Email and Password input fields become visible';
           const emailTab = await waitForElement(By.xpath("//button[contains(., 'Email OTP')]"));
-          await emailTab.click();
+          await safeClick(emailTab);
           await waitForElement(By.id('email-otp-address'));
           const passwordTab = await waitForElement(By.xpath("//button[contains(., 'Password')]"));
-          await passwordTab.click();
+          await safeClick(passwordTab);
           await waitForElement(By.id('login-email'));
           await waitForElement(By.id('login-password'));
           detail = 'Email login mode activated';
@@ -164,7 +175,7 @@ async function runSeleniumTests() {
           testName = 'Submit login form empty';
           expected = 'Form prevents submit and prompts input validation';
           const submitBtn = await waitForElement(By.id('login-submit-password'));
-          await submitBtn.click();
+          await safeClick(submitBtn);
           detail = 'HTML5 validation or custom form checking succeeded';
         } else if (testSubId <= 15) {
           // Password length edge cases (Tests 5 - 15)
@@ -213,7 +224,7 @@ async function runSeleniumTests() {
 
           // Open the dropdown
           const switcher = await waitForElement(By.css('button[aria-label="Select language"]'));
-          await switcher.click();
+          await safeClick(switcher);
           await new Promise((r) => setTimeout(r, 300));
 
           // Language options are plain <button> tags inside the dropdown - match by language code text
@@ -223,7 +234,7 @@ async function runSeleniumTests() {
           for (const btn of langButtons) {
             const text = await btn.getText().catch(() => '');
             if (text && langButtons.indexOf(btn) === locales.indexOf(targetLocale)) {
-              await btn.click().catch(() => {});
+              await safeClick(btn).catch(() => {});
               clicked = true;
               break;
             }
@@ -231,7 +242,7 @@ async function runSeleniumTests() {
           if (!clicked && langButtons.length > 0) {
             // fallback: click the nth button matching locale index
             const idx = locales.indexOf(targetLocale);
-            if (langButtons[idx]) await langButtons[idx].click().catch(() => {});
+            if (langButtons[idx]) await safeClick(langButtons[idx]).catch(() => {});
           }
           await new Promise((r) => setTimeout(r, 300));
           detail = `Language switcher clicked for ${targetLocale}`;

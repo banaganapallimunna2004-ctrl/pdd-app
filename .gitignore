@@ -13,3 +13,5 @@ __pycache__/
 venv/
 .envrc
 .DS_Store
+backend/data/
+Test_Results/Security/~$*.xlsx
