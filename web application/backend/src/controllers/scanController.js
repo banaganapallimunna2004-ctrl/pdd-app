@@ -933,9 +933,12 @@ const advancedVisualPathologyAnalyze = (imageBuffer, cropType, symptoms) => {
   const foliagePigmentTotal = greenRatio + yellowRatio + orangeRatio;
   const plantToneTotal = foliagePigmentTotal + brownRatio;
 
-  // Validation: Check if image has real botanical pigments or user-described symptoms
-  const hasBotanicalPigments = foliagePigmentTotal > 0.03 || greenRatio > 0.02 || (plantToneTotal > 0.04 && (symptoms && symptoms.length > 3));
-  const isLikelyPlant = hasBotanicalPigments && (plantToneTotal > 0.04 || (symptoms && symptoms.length > 3));
+  // Strict Botanical Foliage Validation: Real crop leaves exhibit distinct chlorophyll, chlorosis, or necrosis spectra
+  const hasBotanicalPigments = (greenRatio > 0.04 && plantToneTotal > 0.07) || 
+                               (foliagePigmentTotal > 0.10 && greenRatio > 0.02) || 
+                               (yellowRatio > 0.12 && plantToneTotal > 0.08) ||
+                               (brownRatio > 0.18 && plantToneTotal > 0.10);
+  const isLikelyPlant = Boolean(hasBotanicalPigments);
 
   if (!isLikelyPlant) {
     return {
@@ -943,15 +946,16 @@ const advancedVisualPathologyAnalyze = (imageBuffer, cropType, symptoms) => {
       scientificName: 'N/A',
       confidence: 0,
       severity: 'Low',
-      organicTreatment: 'The uploaded image does not exhibit botanical leaf characteristics. Please upload a clear photo of your crop foliage.',
+      organicTreatment: 'The uploaded image does not appear to contain a valid crop leaf or foliage. Please upload a clear photo of your crop foliage.',
       chemicalTreatment: 'None',
-      treatment: '🌿 ORGANIC:\nThe uploaded image does not exhibit botanical leaf characteristics. Please upload a clear photo of your crop foliage.\n\n💊 CHEMICAL:\nNone',
+      treatment: '🌿 ORGANIC:\nThe uploaded image does not appear to contain a valid crop leaf or foliage. Please upload a clear photo of your crop foliage.\n\n💊 CHEMICAL:\nNone',
       prevention: 'Ensure direct focus and good natural lighting on affected leaves or plant stems.',
       economicImpact: 'None',
       spreadRisk: 'None',
-      imageFindings: 'Chromatic analysis detected non-foliar color spectrum.',
+      imageFindings: 'Visual analysis determined the image does not exhibit botanical leaf characteristics.',
       isPlant: false,
       isCrop: false,
+      isMatch: false,
       source: 'computer-vision-engine',
     };
   }
@@ -1205,9 +1209,14 @@ const scanDisease = async (req, res) => {
   }
 
   return res.status(200).json({
-    success: true,
+    success: isCrop && isMatch,
+    isValidCrop: isCrop && isMatch,
     ...responseData,
-    message: isCrop && isMatch ? 'Crop disease scan completed successfully.' : (isCrop ? 'Plant species mismatch detected.' : 'Invalid image uploaded.'),
+    message: isCrop && isMatch 
+      ? 'Crop disease scan completed successfully.' 
+      : (isCrop 
+          ? `Plant species mismatch: Expected "${cropType}", but detected "${detectedCrop}".` 
+          : 'Invalid image detected: The uploaded photo does not appear to be a crop leaf or plant.'),
   });
 };
 

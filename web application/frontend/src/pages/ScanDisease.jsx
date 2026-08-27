@@ -149,6 +149,7 @@ const ScanDisease = () => {
 
   // Analyses results for each file
   const [analyses, setAnalyses] = useState([]);
+  const [invalidNotice, setInvalidNotice] = useState(null);
   const [loading, setLoading] = useState(false);
   const [loadingIndex, setLoadingIndex] = useState(null);
   const [status, setStatus] = useState('');
@@ -262,6 +263,7 @@ const ScanDisease = () => {
     setSelectedFiles([]);
     setPreviews([]);
     setAnalyses([]);
+    setInvalidNotice(null);
     setActiveFileIndex(0);
     setError(null);
     setStatus('');
@@ -291,6 +293,7 @@ const ScanDisease = () => {
       }
       const newFiles = [...selectedFiles, ...files].slice(0, 3);
       setSelectedFiles(newFiles);
+      setInvalidNotice(null);
       setError(null);
     }
   };
@@ -300,6 +303,7 @@ const ScanDisease = () => {
       const files = Array.from(e.target.files);
       const newFiles = [...selectedFiles, ...files].slice(0, 3);
       setSelectedFiles(newFiles);
+      setInvalidNotice(null);
       setError(null);
     }
   };
@@ -314,6 +318,7 @@ const ScanDisease = () => {
     const newAnalyses = analyses.filter((_, i) => i !== index);
     setSelectedFiles(newFiles);
     setAnalyses(newAnalyses);
+    setInvalidNotice(null);
     if (activeFileIndex >= newFiles.length) {
       setActiveFileIndex(Math.max(0, newFiles.length - 1));
     }
@@ -413,9 +418,32 @@ const ScanDisease = () => {
         };
 
         const response = await reportService.scanDisease(payload);
-        const reportData = response.data?.analysis || response.data?.report;
-        results[i] = reportData;
-        setAnalyses([...results]);
+        const data = response.data || {};
+        
+        // Strict Validation: Only accept genuine, matching crop leaf images
+        const isCropValid = data.success !== false &&
+                            data.isValidCrop !== false &&
+                            data.isCrop !== false &&
+                            data.isMatch !== false &&
+                            !String(data.name || data.analysis?.diseaseName || data.diseaseName || '').toLowerCase().includes('invalid');
+
+        if (!isCropValid) {
+          setInvalidNotice({
+            title: data.isMatch === false ? 'Plant Species Mismatch' : 'Invalid Image Detected — Not a Crop Leaf',
+            message: data.message || 'The uploaded photo does not appear to contain a recognized crop leaf or plant disease. Please upload a clear photo of a crop leaf to generate an official disease diagnostic report.',
+            details: data.details || data.organicTreatment || 'Visual colorimetry analysis did not detect authentic botanical foliage.',
+            isMismatch: data.isMatch === false,
+            detectedCrop: data.detectedCrop,
+            expectedCrop: cropType,
+          });
+          results[i] = null;
+          setAnalyses([...results]);
+        } else {
+          setInvalidNotice(null);
+          const reportData = data.analysis || data.report || data;
+          results[i] = reportData;
+          setAnalyses([...results]);
+        }
       }
 
       setStatus(t('resultTitle'));
@@ -438,7 +466,16 @@ const ScanDisease = () => {
   };
 
   const currentAnalysis = useMemo(() => {
-    return analyses[activeFileIndex] || null;
+    const item = analyses[activeFileIndex];
+    if (!item) return null;
+    if (
+      item.isCrop === false ||
+      item.isMatch === false ||
+      String(item.diseaseName || item.name || '').toLowerCase().includes('invalid')
+    ) {
+      return null;
+    }
+    return item;
   }, [analyses, activeFileIndex]);
 
   // Severity style configuration
@@ -959,7 +996,71 @@ const ScanDisease = () => {
               )}
             </div>
 
-            {/* ─── Diagnostic Results Section ─── */}
+            {/* ─── Invalid Image Warning Card (Non-Crop / Mismatch Guard) ─── */}
+            {invalidNotice && (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.96 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="mt-6 rounded-3xl border-2 border-rose-500/50 bg-gradient-to-br from-rose-950/90 via-red-950/80 to-black/90 p-6 sm:p-8 text-white shadow-2xl backdrop-blur-xl space-y-4"
+              >
+                <div className="flex items-start gap-4">
+                  <div className="p-3.5 rounded-2xl bg-rose-600/30 border border-rose-500/50 shrink-0 text-rose-400">
+                    <AlertTriangle className="h-8 w-8 text-rose-400 animate-pulse" />
+                  </div>
+                  <div className="space-y-1.5 flex-1">
+                    <div className="inline-flex items-center gap-1.5 rounded-full bg-rose-500/20 px-2.5 py-0.5 text-[10px] font-black uppercase tracking-wider text-rose-300 border border-rose-500/40">
+                      🚫 Scan Rejected: Incorrect Image
+                    </div>
+                    <h3 className="text-lg sm:text-xl font-black text-white">
+                      {invalidNotice.title}
+                    </h3>
+                    <p className="text-xs sm:text-sm text-rose-100/90 font-medium leading-relaxed">
+                      {invalidNotice.message}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="rounded-2xl bg-black/40 border border-white/10 p-4 space-y-2 text-xs">
+                  <p className="font-black text-rose-300 uppercase tracking-wider text-[10px]">
+                    🌾 Guidelines for Generating an Official Disease Diagnostic Report:
+                  </p>
+                  <ul className="space-y-1.5 text-slate-200 text-xs font-medium">
+                    <li className="flex items-center gap-2">
+                      <CheckCircle2 className="h-4 w-4 text-emerald-400 shrink-0" />
+                      <span><strong>Genuine Crop Leaf:</strong> Upload an authentic leaf or plant foliage photo of <strong>{cropType}</strong>.</span>
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <CheckCircle2 className="h-4 w-4 text-emerald-400 shrink-0" />
+                      <span><strong>Sharp Lighting & Contrast:</strong> Ensure visible natural daylight and sharp focus directly on disease lesions.</span>
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <CheckCircle2 className="h-4 w-4 text-emerald-400 shrink-0" />
+                      <span><strong>Zero Non-Plant Objects:</strong> Non-crop subjects (faces, vehicles, objects, screenshots) are automatically rejected.</span>
+                    </li>
+                  </ul>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-3 pt-2">
+                  <button
+                    type="button"
+                    onClick={triggerFileInput}
+                    className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-500 hover:to-green-500 text-white font-black text-xs px-5 py-2.5 shadow-lg transition-all duration-200 cursor-pointer active:scale-95"
+                  >
+                    <Upload className="h-4 w-4" />
+                    Upload Correct Crop Leaf Photo
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setInvalidNotice(null)}
+                    className="rounded-xl border border-white/20 bg-white/10 hover:bg-white/20 text-white font-bold text-xs px-4 py-2.5 transition cursor-pointer"
+                  >
+                    Dismiss
+                  </button>
+                </div>
+              </motion.div>
+            )}
+
+            {/* ─── Diagnostic Results Section (Rendered Only for Valid Crop Leaf) ─── */}
             <AnimatePresence mode="wait">
               {currentAnalysis ? (
                 <motion.div
