@@ -1,0 +1,79 @@
+[
+  {
+    "id": "1",
+    "diseaseName": "Tomato Early Blight",
+    "scientificName": "Alternaria solani",
+    "severity": "High",
+    "confidence": 0.98,
+    "imageUrl": "https://images.unsplash.com/photo-1592819695396-064b9572a660?q=80&w=1600&auto=format&fit=crop",
+    "symptoms": ["Small brown spots with concentric rings", "Yellowing of surrounding tissue", "Lower leaves affected first"],
+    "treatmentSuggestions": ["Prune infected lower leaves", "Apply copper-based fungicides", "Improve plant spacing for airflow"],
+    "preventionTips": ["Rotate crops every 3 years", "Use disease-free seeds", "Avoid overhead watering"]
+  },
+  {
+    "id": "2",
+    "diseaseName": "Rice Blast",
+    "scientificName": "Magnaporthe oryzae",
+    "severity": "High",
+    "confidence": 0.95,
+    "imageUrl": "https://images.unsplash.com/photo-1536633100656-7870716c0989?q=80&w=1600&auto=format&fit=crop",
+    "symptoms": ["Diamond-shaped lesions on leaves", "Gray or whitish centers with brown borders", "Nodal rot in severe cases"],
+    "treatmentSuggestions": ["Apply systemic fungicides like Tricyclazole", "Drain field to reduce humidity", "Avoid excessive nitrogen fertilizers"],
+    "preventionTips": ["Use resistant varieties", "Time planting to avoid high humidity", "Clean farm equipment"]
+  },
+  {
+    "id": "3",
+    "diseaseName": "Paddy Bacterial Leaf Blight",
+    "scientificName": "Xanthomonas oryzae",
+    "severity": "Medium",
+    "confidence": 0.92,
+    "imageUrl": "https://images.unsplash.com/photo-1625246333195-78d9c38ad449?q=80&w=1600&auto=format&fit=crop",
+    "symptoms": ["Water-soaked streaks on leaves", "Yellow to white wavy margins", "Wilting of young seedlings (Kresek)"],
+    "treatmentSuggestions": ["Apply bactericides", "Regulate water level in field", "Remove weeds that host bacteria"],
+    "preventionTips": ["Balanced fertilization (avoid high Nitrogen)", "Proper drainage", "Treat seeds before sowing"]
+  },
+  {
+    "id": "4",
+    "diseaseName": "Wheat Rust",
+    "scientificName": "Puccinia triticina",
+    "severity": "High",
+    "confidence": 0.94,
+    "imageUrl": "https://images.unsplash.com/photo-1574323347407-f5e1ad6d020b?q=80&w=1600&auto=format&fit=crop",
+    "symptoms": ["Reddish-brown pustules on leaf surface", "Reduced grain size", "Weakened stems"],
+    "treatmentSuggestions": ["Apply triazole fungicides", "Remove volunteer wheat plants", "Early sowing"],
+    "preventionTips": ["Grow rust-resistant cultivars", "Avoid irrigation in evening", "Monitor fields regularly"]
+  },
+  {
+    "id": "5",
+    "diseaseName": "Maize Leaf Spot",
+    "scientificName": "Cercospora zeae-maydis",
+    "severity": "Medium",
+    "confidence": 0.90,
+    "imageUrl": "https://images.unsplash.com/photo-1551754655-cd27e38d2076?q=80&w=1600&auto=format&fit=crop",
+    "symptoms": ["Rectangular gray to tan lesions", "Lesions run parallel to leaf veins", "Premature drying of leaves"],
+    "treatmentSuggestions": ["Apply foliar fungicides", "Deep plowing of crop residue", "Balanced nutrition"],
+    "preventionTips": ["Crop rotation with non-host crops", "Resistant hybrids", "Clean cultivation"]
+  },
+  {
+    "id": "6",
+    "diseaseName": "Grape Black Rot",
+    "scientificName": "Guignardia bidwellii",
+    "severity": "High",
+    "confidence": 0.96,
+    "imageUrl": "https://images.unsplash.com/photo-1533418264835-98fe1e30c641?q=80&w=1600&auto=format&fit=crop",
+    "symptoms": ["Small brown circular spots on leaves", "Black fungal fruiting bodies (pycnidia)", "Berries shrivel into black mummies"],
+    "treatmentSuggestions": ["Apply Mancozeb or Myclobutanil", "Remove mummified berries", "Prune to improve airflow"],
+    "preventionTips": ["Dormant pruning", "Sanitation of vineyard floor", "Resistant cultivars"]
+  },
+  {
+    "id": "7",
+    "diseaseName": "Cotton Leaf Curl Virus",
+    "scientificName": "Begomovirus CLCuV",
+    "severity": "Critical",
+    "confidence": 0.93,
+    "imageUrl": "https://images.unsplash.com/photo-1594904351111-a072f80b1a71?q=80&w=1600&auto=format&fit=crop",
+    "symptoms": ["Upward curling of leaf margins", "Thickened veins on leaf underside", "Stunted plant growth"],
+    "treatmentSuggestions": ["Control whiteflies with systemic insecticides", "Remove and destroy infected plants"],
+    "preventionTips": ["Use CLCuV resistant varieties", "Crop rotation", "Clean cultivation"]
+  }
+]

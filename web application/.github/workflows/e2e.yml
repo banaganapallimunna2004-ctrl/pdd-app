@@ -1,0 +1,124 @@
+name: E2E Testing & Deployment
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  e2e-and-security:
+    runs-on: ubuntu-latest
+
+    services:
+      mongodb:
+        image: mongo:6.0
+        ports:
+          - 27017:27017
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install Backend Dependencies
+        working-directory: ./backend
+        run: npm ci
+
+      - name: Configure Backend Env
+        run: |
+          echo "MONGODB_URI=mongodb://localhost:27017/agroai_db" > backend/.env
+          echo "JWT_SECRET=dev_secret_jwt_key_e2e" >> backend/.env
+          echo "JWT_REFRESH_SECRET=dev_refresh_jwt_key_e2e" >> backend/.env
+          echo "PORT=5000" >> backend/.env
+          echo "NODE_ENV=development" >> backend/.env
+          echo "FRONTEND_URL=http://localhost:5173" >> backend/.env
+
+      - name: Start Backend Server
+        working-directory: ./backend
+        run: npm start &
+
+      - name: Install Frontend Dependencies
+        working-directory: ./frontend
+        run: npm ci
+
+      - name: Build Frontend Application
+        working-directory: ./frontend
+        run: |
+          echo "VITE_API_BASE_URL=http://localhost:5000/api" > .env
+          npm run build
+
+      - name: Start Background Vite Preview Server
+        working-directory: ./frontend
+        run: |
+          npx vite preview --port 5173 --host 127.0.0.1 --base /AgroAI-Precision-Crop-Detection-project/ &
+          sleep 5
+          curl -I http://127.0.0.1:5173/AgroAI-Precision-Crop-Detection-project/
+          echo "TEST_BASE_URL=http://127.0.0.1:5173/AgroAI-Precision-Crop-Detection-project/" >> $GITHUB_ENV
+
+      - name: Install E2E Dependencies
+        working-directory: ./AgroAI-Precision-Crop-DetectionE2E
+        run: npm install
+
+      - name: Run E2E Test Suite (1,100 assertions)
+        working-directory: ./AgroAI-Precision-Crop-DetectionE2E
+        run: npm test
+
+      - name: Run Frontend Security Scan
+        working-directory: ./AgroAI-Precision-Crop-DetectionE2E
+        env:
+          NODE_PATH: ./node_modules
+        run: |
+          node scripts/generateWebSecuritySuite.js
+
+      - name: Enforce Zero-Critical Frontend Security Policy
+        run: |
+          CRITICAL_COUNT=$(grep -i "Critical Findings:" Test_Results/Security/web-executive-summary.md | grep -o "[0-9]\+" || echo "0")
+          echo "Frontend Critical Findings Count: $CRITICAL_COUNT"
+          if [ "$CRITICAL_COUNT" -gt 0 ]; then
+            echo "❌ Zero-Critical Frontend Security Gate Failed! Found $CRITICAL_COUNT Critical findings."
+            exit 1
+          else
+            echo "✅ Zero-Critical Frontend Security Gate Passed!"
+          fi
+
+      - name: Inject Reports to Build Dist
+        run: |
+          mkdir -p frontend/dist/reports/latest
+          mkdir -p frontend/dist/reports/history/build-${{ github.run_number }}
+          cp Test_Results/HTML/execution-report.html frontend/dist/reports/latest/execution-report.html || true
+          cp Test_Results/HTML/execution-report.html frontend/dist/reports/history/build-${{ github.run_number }}/execution-report.html || true
+
+      - name: Upload Test Reports Artifact
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: Selenium-And-Security-Reports
+          path: |
+            Test_Results/
+            AgroAI-Precision-Crop-DetectionE2E/summary.md
+
+      - name: Publish E2E & Security Job Summary
+        uses: actions/github-script@v7
+        if: always()
+        with:
+          script: |
+            const fs = require('fs');
+            const path = require('path');
+            
+            // E2E Summary
+            const e2ePath = path.resolve('AgroAI-Precision-Crop-DetectionE2E', 'summary.md');
+            if (fs.existsSync(e2ePath)) {
+              core.summary.addRaw(fs.readFileSync(e2ePath, 'utf8')).write();
+            }
+            
+            // Security Summary
+            const secPath = path.resolve('Test_Results/Security', 'web-executive-summary.md');
+            if (fs.existsSync(secPath)) {
+              core.summary.addRaw(fs.readFileSync(secPath, 'utf8')).write();
+            }

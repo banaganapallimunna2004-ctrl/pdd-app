@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
-    "test": "node run-tests.js"
+    "test": "node tests/login-tests.js"
   },
   "dependencies": {
     "exceljs": "^4.4.0",

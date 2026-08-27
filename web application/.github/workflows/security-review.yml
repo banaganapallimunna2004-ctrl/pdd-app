@@ -1,0 +1,138 @@
+name: Security Review – Backend & Web Frontend
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  security-audit:
+    name: Backend & Frontend Security Scan
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      # ── Shared: Install exceljs once in the E2E node_modules ──────────
+      - name: Install E2E Dependencies (provides exceljs)
+        working-directory: ./AgroAI-Precision-Crop-DetectionE2E
+        run: npm install
+
+      # ────────────────────────────────────────────────────────────────────
+      # BACKEND SECURITY SCAN
+      # ────────────────────────────────────────────────────────────────────
+      - name: Install Backend Dependencies
+        working-directory: ./backend
+        run: npm ci
+
+      - name: Run Backend Security Scan
+        working-directory: ./backend
+        env:
+          NODE_PATH: ./node_modules
+        run: node scripts/generateSecuritySuite.js
+
+      # ────────────────────────────────────────────────────────────────────
+      # WEB FRONTEND SECURITY SCAN
+      # ────────────────────────────────────────────────────────────────────
+      - name: Run Web Frontend Security Scan
+        working-directory: ./AgroAI-Precision-Crop-DetectionE2E
+        env:
+          NODE_PATH: ./node_modules
+        run: node scripts/generateWebSecuritySuite.js
+
+      # ────────────────────────────────────────────────────────────────────
+      # ZERO-CRITICAL SECURITY GATE
+      # ────────────────────────────────────────────────────────────────────
+      - name: Enforce Zero-Critical Policy – Backend
+        run: |
+          EXEC_SUMMARY="Test_Results/Security/executive-summary.md"
+          if [ ! -f "$EXEC_SUMMARY" ]; then
+            echo "⚠️ Backend executive summary not found – skipping gate."
+          else
+            # Extract the number after "Critical Findings:" label
+            CRITICAL=$(grep -oP "Critical Findings:\s*\K[0-9]+" "$EXEC_SUMMARY" 2>/dev/null \
+                       || grep -oE "\*\*Critical Findings:\*\* [0-9]+" "$EXEC_SUMMARY" | grep -oE "[0-9]+" \
+                       || echo "0")
+            CRITICAL="${CRITICAL:-0}"
+            echo "Backend Critical Findings: $CRITICAL"
+            if [ "$CRITICAL" -gt 0 ]; then
+              echo "❌ Zero-Critical gate FAILED (Backend)! Found $CRITICAL Critical findings."
+              exit 1
+            fi
+            echo "✅ Zero-Critical gate PASSED (Backend)."
+          fi
+
+      - name: Enforce Zero-Critical Policy – Web Frontend
+        run: |
+          WEB_SUMMARY="Test_Results/Security/web-executive-summary.md"
+          if [ ! -f "$WEB_SUMMARY" ]; then
+            echo "⚠️ Web executive summary not found – skipping gate."
+          else
+            CRITICAL=$(grep -oP "Critical Findings:\s*\|\s*\K[0-9]+" "$WEB_SUMMARY" 2>/dev/null \
+                       || grep -oE "Critical[^0-9]+([0-9]+)" "$WEB_SUMMARY" | grep -oE "[0-9]+" | head -1 \
+                       || echo "0")
+            CRITICAL="${CRITICAL:-0}"
+            echo "Web Critical Findings: $CRITICAL"
+            if [ "$CRITICAL" -gt 0 ]; then
+              echo "❌ Zero-Critical gate FAILED (Web)! Found $CRITICAL Critical findings."
+              exit 1
+            fi
+            echo "✅ Zero-Critical gate PASSED (Web)."
+          fi
+
+      # ────────────────────────────────────────────────────────────────────
+      # UPLOAD ALL SECURITY ARTIFACTS
+      # ────────────────────────────────────────────────────────────────────
+      - name: Upload Security Report Artifacts
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: Security-Review-Reports-${{ github.run_number }}
+          retention-days: 90
+          path: |
+            Test_Results/Security/findings.xlsx
+            Test_Results/Security/web-security-findings.xlsx
+            Test_Results/Security/security-review.md
+            Test_Results/Security/web-security-review.md
+            Test_Results/Security/dependency-report.md
+            Test_Results/Security/executive-summary.md
+            Test_Results/Security/web-executive-summary.md
+
+      # ────────────────────────────────────────────────────────────────────
+      # PUBLISH STEP SUMMARY
+      # ────────────────────────────────────────────────────────────────────
+      - name: Publish Security Review Summary
+        uses: actions/github-script@v7
+        if: always()
+        with:
+          script: |
+            const fs   = require('fs');
+            const path = require('path');
+
+            const files = [
+              { label: '🖥️ Backend Executive Summary',       file: 'Test_Results/Security/executive-summary.md' },
+              { label: '🌐 Web Frontend Executive Summary',  file: 'Test_Results/Security/web-executive-summary.md' },
+            ];
+
+            for (const { label, file } of files) {
+              const fullPath = path.resolve(file);
+              if (fs.existsSync(fullPath)) {
+                core.summary.addRaw(`## ${label}\n\n`);
+                core.summary.addRaw(fs.readFileSync(fullPath, 'utf8'));
+                core.summary.addRaw('\n\n---\n\n');
+              } else {
+                core.summary.addRaw(`## ${label}\n\n⚠️ Report not found at \`${file}\`.\n\n---\n\n`);
+              }
+            }
+            await core.summary.write();

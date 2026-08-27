@@ -1,0 +1,17 @@
+node_modules/
+dist/
+build/
+.env
+.env.local
+*.log
+*.sqlite
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+venv/
+.envrc
+.DS_Store
+backend/data/
+Test_Results/Security/~$*.xlsx
