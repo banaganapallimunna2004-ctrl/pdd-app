@@ -169,20 +169,6 @@ fun DashboardScreen(
             Spacer(modifier = Modifier.height(24.dp))
 
             SectionHeader(
-                title = stringResource(R.string.agro_ai_assistant),
-                subtitle = stringResource(R.string.chatbot_subtitle),
-                actionText = stringResource(R.string.ask_agro_ai_tips),
-                onActionClick = onNavigateToChatbot
-            )
-
-            AiInsightCard(
-                recommendation = aiRecommendations.firstOrNull() ?: stringResource(R.string.all_crops_healthy),
-                onChatClick = onNavigateToChatbot
-            )
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            SectionHeader(
                 title = stringResource(R.string.precision_geo_map),
                 subtitle = stringResource(R.string.verify_farm_coords),
                 actionText = stringResource(R.string.view_map) + " 🗺️ →",

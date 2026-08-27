@@ -1302,10 +1302,10 @@ const ScanDisease = () => {
             {/* Pathologist Pro-Tip Card */}
             <div className="rounded-3xl border border-white/20 bg-black/40 p-5 shadow-2xl backdrop-blur-xl text-white">
               <h4 className="text-xs font-black uppercase tracking-wider text-emerald-300 mb-1.5 flex items-center gap-1.5">
-                💡 {t('chatbotTitle')}
+                💡 {t('pathologyTips') || 'Agronomist Scanning Tip'}
               </h4>
               <p className="text-xs text-slate-200 leading-relaxed font-medium">
-                {t('chatWelcome')}
+                Ensure natural daylight and high-contrast focus on the affected leaf lesions for maximum diagnostic precision.
               </p>
             </div>
 

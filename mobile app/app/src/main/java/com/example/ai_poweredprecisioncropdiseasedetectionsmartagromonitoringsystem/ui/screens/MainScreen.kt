@@ -74,36 +74,6 @@ fun MainScreen(viewModel: AgroViewModel, rootNavController: NavController) {
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
         bottomBar = {
             BottomNavigationBar(navController)
-        },
-        floatingActionButton = {
-            if (currentRoute == BottomNavItem.Home.route) {
-                FloatingActionButton(
-                    onClick = { navController.navigate("chatbot") },
-                    containerColor = AgroColors.PrimaryGreen,
-                    contentColor = Color.White,
-                    shape = CircleShape,
-                    elevation = FloatingActionButtonDefaults.elevation(8.dp)
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .size(56.dp)
-                            .background(
-                                Brush.linearGradient(
-                                    colors = listOf(Color(0xFF1B5E20), Color(0xFF00E676))
-                                ),
-                                CircleShape
-                            ),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Outlined.Chat, 
-                            contentDescription = stringResource(R.string.ai_assistant),
-                            tint = Color.White,
-                            modifier = Modifier.size(24.dp)
-                        )
-                    }
-                }
-            }
         }
     ) { innerPadding ->
         NavHost(
