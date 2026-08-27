@@ -13,6 +13,18 @@ const api = axios.create({
   },
 });
 
+// Request Interceptor: Automatically attach JWT token to every outgoing request
+api.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem('agroai_access_token');
+    if (token && !config.headers.Authorization) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
+
 api.interceptors.response.use(
   (response) => response,
   (error) => {

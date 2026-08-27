@@ -25,6 +25,7 @@ import {
 import reportService from '../services/reportService';
 import farmService from '../services/farmService';
 import { useTranslation } from '../i18n';
+import { useAuth } from '../context/AuthContext';
 
 const cropOptions = ['Tomato', 'Potato', 'Corn', 'Rice', 'Cotton', 'Wheat', 'Chilli', 'Grape', 'Apple'];
 
@@ -135,6 +136,7 @@ const samplePathologyPresets = [
 
 const ScanDisease = () => {
   const { t } = useTranslation();
+  const { user } = useAuth();
   const [farms, setFarms] = useState([]);
   const [farmId, setFarmId] = useState('');
   const [cropType, setCropType] = useState('Potato');
@@ -364,8 +366,13 @@ const ScanDisease = () => {
     e.preventDefault();
     setError(null);
     
+    if (!user) {
+      setError('🔒 Authentication Required: Please sign in with your farmer or admin account to run an authenticated crop disease diagnosis.');
+      return;
+    }
+
     if (selectedFiles.length === 0) {
-      setError(t('uploadImage'));
+      setError(t('uploadImage') || 'Please upload a crop leaf image to scan.');
       return;
     }
 
@@ -835,6 +842,17 @@ const ScanDisease = () => {
 
               {/* Right Column: Multi-Image Dropzone & Live Preview */}
               <div className="flex flex-col space-y-3.5 rounded-3xl border border-white/15 bg-black/35 p-5 no-print text-white">
+                {/* Authentication Status Bar */}
+                <div className="flex items-center justify-between gap-2 border-b border-white/10 pb-2.5">
+                  <div className="flex items-center gap-1.5 text-[11px] font-black text-emerald-300">
+                    <CheckCircle2 className="h-4 w-4 text-emerald-400" />
+                    <span>Farmer: {user?.name || user?.email || 'Authenticated User'}</span>
+                  </div>
+                  <span className="text-[10px] uppercase font-bold text-slate-300 bg-emerald-950/80 px-2 py-0.5 rounded border border-emerald-500/30">
+                    {user?.role || 'Smart Farmer'}
+                  </span>
+                </div>
+
                 <div className="flex items-center justify-between">
                   <h3 className="text-xs font-black uppercase tracking-wider text-emerald-300 flex items-center gap-2">
                     <ImageIcon className="h-4 w-4 text-emerald-400" />
@@ -900,7 +918,7 @@ const ScanDisease = () => {
                       </div>
                       <div className="text-center">
                         <span className="text-[10px] font-bold text-white drop-shadow">
-                          {analyses[activeFileIndex] ? `${t('resultTitle')}: ${analyses[activeFileIndex].diseaseName}` : t('loading')}
+                          {analyses[activeFileIndex] ? `${t('resultTitle')}: ${analyses[activeFileIndex].diseaseName}` : 'Ready — Click "Run Diagnosis"'}
                         </span>
                       </div>
                     </div>
@@ -913,6 +931,17 @@ const ScanDisease = () => {
                     >
                       + {t('uploadImage')}
                     </button>
+                  </div>
+                )}
+
+                {/* Photo Ready Notification Banner */}
+                {selectedFiles.length > 0 && !analyses[activeFileIndex] && (
+                  <div className="rounded-xl border border-emerald-500/40 bg-emerald-950/60 p-2.5 text-[11px] text-emerald-200 flex items-center justify-between shadow-inner">
+                    <span className="flex items-center gap-1.5 font-bold">
+                      <Sparkles className="h-3.5 w-3.5 text-emerald-400" />
+                      Image loaded. Ready for diagnosis.
+                    </span>
+                    <span className="text-[10px] font-black uppercase text-emerald-300 tracking-wider">Click Below ↓</span>
                   </div>
                 )}
 
@@ -956,17 +985,17 @@ const ScanDisease = () => {
                   type="button"
                   onClick={handleScanAll}
                   disabled={loading || selectedFiles.length === 0}
-                  className="w-full rounded-2xl bg-gradient-to-r from-emerald-500 to-green-600 py-3 text-xs font-black uppercase tracking-wider text-white shadow-xl shadow-emerald-950/60 border border-emerald-300/40 transition hover:scale-[1.01] active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer flex items-center justify-center gap-2"
+                  className="w-full rounded-2xl bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-400 hover:to-green-500 py-3 text-xs font-black uppercase tracking-wider text-white shadow-xl shadow-emerald-950/60 border border-emerald-300/40 transition hover:scale-[1.01] active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer flex items-center justify-center gap-2"
                 >
                   {loading ? (
                     <>
                       <RefreshCw className="h-4 w-4 animate-spin text-white" />
-                      {t('scanning')}
+                      {t('scanning')} ({selectedFiles.length})
                     </>
                   ) : (
                     <>
                       <Sparkles className="h-4 w-4 text-white" />
-                      {t('scanBtn')} ({selectedFiles.length})
+                      ⚡ Run Disease Diagnosis ({selectedFiles.length})
                     </>
                   )}
                 </button>
