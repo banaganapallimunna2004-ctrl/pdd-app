@@ -56,7 +56,6 @@ fun DashboardScreen(
     onNavigateToAlerts: () -> Unit,
     onNavigateToScan: () -> Unit,
     onNavigateToMonitor: () -> Unit,
-    onNavigateToChatbot: () -> Unit,
     onNavigateToMap: () -> Unit = {}
 ) {
     val sensorData by viewModel.sensorData.collectAsState()

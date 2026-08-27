@@ -87,7 +87,6 @@ fun MainScreen(viewModel: AgroViewModel, rootNavController: NavController) {
                     onNavigateToAlerts = { navController.navigate(BottomNavItem.Alerts.route) },
                     onNavigateToScan = { navController.navigate("crop_selection") },
                     onNavigateToMonitor = { navController.navigate(BottomNavItem.Monitor.route) },
-                    onNavigateToChatbot = { navController.navigate("chatbot") },
                     onNavigateToMap = { navController.navigate("map") }
                 ) 
             }
@@ -116,12 +115,6 @@ fun MainScreen(viewModel: AgroViewModel, rootNavController: NavController) {
                         }
                     }
                 )
-            }
-            composable("chatbot") { 
-                ChatbotScreen(
-                    viewModel = viewModel,
-                    onBack = { navController.popBackStack() }
-                ) 
             }
             composable("disease_guide") {
                 CropDiseaseGuideScreen(
