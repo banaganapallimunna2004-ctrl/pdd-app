@@ -10,6 +10,7 @@
 **/.next/
 **/.nuxt/
 **/.vuepress/dist
+**/.vite/
 
 # IDE and Editors
 **/.idea/
